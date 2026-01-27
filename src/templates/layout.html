@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FUEL RESTRICTION AND POLLUTION CONTROL USING ANPR SYSTEM{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block head %}{% endblock %}
+    <style>
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #141b2d;
+            --bg-card: #1e2139;
+            --accent-blue: #4c6ef5;
+            --accent-purple: #7c3aed;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --border-color: #2d3748;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .navbar {
+            background: rgba(30, 33, 57, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-link {
+            color: var(--text-secondary) !important;
+            transition: all 0.3s ease;
+            position: relative;
+            padding: 0.5rem 1rem;
+        }
+        
+        .nav-link:hover {
+            color: var(--accent-blue) !important;
+        }
+        
+        .nav-link.active {
+            color: var(--accent-blue) !important;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: var(--accent-blue);
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 80%;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            border-bottom: none;
+            font-weight: 600;
+            border-radius: 12px 12px 0 0 !important;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(76, 110, 245, 0.4);
+        }
+        
+        .btn-success {
+            background: var(--accent-green);
+            border: none;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: var(--accent-red);
+            border: none;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            border: none;
+            color: #1f2937;
+        }
+        
+        .btn-secondary {
+            background: #374151;
+            border: none;
+        }
+        
+        .form-control, .form-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 0.25rem rgba(76, 110, 245, 0.25);
+        }
+        
+        .table {
+            color: var(--text-primary);
+        }
+        
+        .table-striped > tbody > tr:nth-of-type(odd) > * {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        footer {
+            background: rgba(30, 33, 57, 0.95) !important;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .alert-success {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--accent-red);
+            color: #fca5a5;
+        }
+        
+        .alert-info {
+            background: rgba(76, 110, 245, 0.2);
+            border-color: var(--accent-blue);
+            color: #93c5fd;
+        }
+        
+        .spinner-border {
+            border-color: var(--accent-blue);
+            border-right-color: transparent;
+        }
+        
+        .bg-success {
+            background: var(--accent-green) !important;
+        }
+        
+        .bg-danger {
+            background: var(--accent-red) !important;
+        }
+        
+        .text-success {
+            color: var(--accent-green) !important;
+        }
+        
+        .text-danger {
+            color: var(--accent-red) !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-car me-2"></i>ANPR System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload">
+                            <i class="fas fa-upload me-1"></i>Upload
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/camera">
+                            <i class="fas fa-camera me-1"></i>Camera
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/check">
+                            <i class="fas fa-search me-1"></i>Check
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/add">
+                            <i class="fas fa-plus me-1"></i>Add Vehicle
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/atlas-info">
+                            <i class="fas fa-database me-1"></i>Atlas Info
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link" id="atlasStatus" style="cursor: default;">
+                            <i class="fas fa-circle me-1" id="atlasStatusIcon"></i><span id="atlasStatusText">Checking...</span>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer mt-5 py-4 text-white">
+        <div class="container text-center">
+            <p class="mb-0">
+                <i class="fas fa-shield-alt me-2"></i>
+                ANPR System &copy; 2025 | Automatic Number Plate Recognition
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check Atlas connection status
+        function checkAtlasStatus() {
+            fetch('/api/atlas/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusElement = document.getElementById('atlasStatus');
+                    const statusText = document.getElementById('atlasStatusText');
+                    
+                    const iconElement = document.getElementById('atlasStatusIcon');
+                    if (data.success && data.atlas_status && data.atlas_status.connected) {
+                        statusText.innerHTML = '<span class="text-success">Connected</span>';
+                        statusElement.title = 'MongoDB Atlas: Connected';
+                        if (iconElement) {
+                            iconElement.className = 'fas fa-circle me-1 text-success';
+                        }
+                    } else {
+                        statusText.innerHTML = '<span class="text-danger">Disconnected</span>';
+                        statusElement.title = 'MongoDB Atlas: Disconnected';
+                        if (iconElement) {
+                            iconElement.className = 'fas fa-circle me-1 text-danger';
+                        }
+                    }
+                })
+                .catch(error => {
+                    const statusText = document.getElementById('atlasStatusText');
+                    statusText.innerHTML = '<span class="text-warning">Atlas: Unknown</span>';
+                });
+        }
+        
+        // Check status on page load and every 30 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAtlasStatus();
+            setInterval(checkAtlasStatus, 30000);
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

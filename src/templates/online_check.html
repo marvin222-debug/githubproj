@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANPR - Online Lookup</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="row mt-4 mb-4">
+            <div class="col-md-12 text-center">
+                <h1>Online Vehicle Registration Lookup</h1>
+                <p class="text-muted">Check any vehicle registration number against the online database</p>
+                <a href="/" class="btn btn-outline-secondary btn-sm">Back to Home</a>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4>Enter Registration Number</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="registrationNumber">Vehicle Registration Number:</label>
+                            <input type="text" class="form-control" id="registrationNumber" placeholder="e.g. KA01MJ2023">
+                            <small class="form-text text-muted">Enter any registration number in the format: [STATE][DISTRICT][SERIES][NUMBER]</small>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary" id="checkBtn">Check Eligibility</button>
+                            <button class="btn btn-secondary" id="randomBtn">Generate Random</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 d-none" id="resultCard">
+                    <div class="card">
+                        <div class="card-header" id="resultHeader">
+                            <h4>Vehicle Information</h4>
+                        </div>
+                        <div class="card-body" id="resultContent">
+                            <!-- Results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 d-none" id="errorCard">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <h4>Error</h4>
+                        </div>
+                        <div class="card-body" id="errorContent">
+                            <!-- Error message will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkBtn = document.getElementById('checkBtn');
+            const randomBtn = document.getElementById('randomBtn');
+            const registrationNumber = document.getElementById('registrationNumber');
+            const resultCard = document.getElementById('resultCard');
+            const resultHeader = document.getElementById('resultHeader');
+            const resultContent = document.getElementById('resultContent');
+            const errorCard = document.getElementById('errorCard');
+            const errorContent = document.getElementById('errorContent');
+            
+            // Check eligibility button click
+            checkBtn.addEventListener('click', function() {
+                checkVehicle(registrationNumber.value, true);
+            });
+            
+            // Random button click
+            randomBtn.addEventListener('click', function() {
+                fetch('/api/random-plate')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        registrationNumber.value = data.plate;
+                        checkVehicle(data.plate, true);
+                    }
+                });
+            });
+            
+            // Function to check vehicle eligibility
+            function checkVehicle(plate, online = false) {
+                // Hide previous results
+                resultCard.classList.add('d-none');
+                errorCard.classList.add('d-none');
+                
+                if (!plate) {
+                    showError('Please enter a registration number');
+                    return;
+                }
+                
+                // API call to check plate
+                fetch(`/api/check-plate?plate=${plate}&online=true`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show the result card
+                        resultCard.classList.remove('d-none');
+                        
+                        // Set header class based on eligibility
+                        if (data.fuel_eligibility.eligible) {
+                            resultHeader.className = 'card-header bg-success text-white';
+                            resultHeader.innerHTML = `<h4>Vehicle Eligible for Fuel</h4>`;
+                        } else {
+                            resultHeader.className = 'card-header bg-danger text-white';
+                            resultHeader.innerHTML = `<h4>Vehicle Not Eligible for Fuel</h4>`;
+                        }
+                        
+                        // Display vehicle details
+                        resultContent.innerHTML = `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Registration Details</h5>
+                                    <ul class="list-group">
+                                        <li class="list-group-item"><strong>Registration Number:</strong> ${data.registration_number}</li>
+                                        <li class="list-group-item"><strong>Registration Date:</strong> ${formatDate(data.vehicle_details.registration_date)}</li>
+                                        <li class="list-group-item"><strong>Vehicle Age:</strong> ${data.vehicle_details.age_years.toFixed(1)} years</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Vehicle Details</h5>
+                                    <ul class="list-group">
+                                        <li class="list-group-item"><strong>Make & Model:</strong> ${data.vehicle_details.vehicle_make} ${data.vehicle_details.vehicle_model}</li>
+                                        <li class="list-group-item"><strong>Fuel Type:</strong> ${data.vehicle_details.fuel_type}</li>
+                                        <li class="list-group-item"><strong>Owner:</strong> ${data.vehicle_details.owner_name}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <h5>Eligibility Status</h5>
+                                    <div class="alert ${data.fuel_eligibility.eligible ? 'alert-success' : 'alert-danger'}">
+                                        <strong>${data.fuel_eligibility.eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}</strong>
+                                        ${data.fuel_eligibility.reason ? ': ' + data.fuel_eligibility.reason : ''}
+                                        <br>
+                                        <small>Age limit for ${data.vehicle_details.fuel_type.toLowerCase()} vehicles: ${data.fuel_eligibility.age_limit} years</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <h5>Additional Details</h5>
+                                    <ul class="list-group">
+                                        <li class="list-group-item"><strong>Chassis Number:</strong> ${data.vehicle_details.chassis_number}</li>
+                                        <li class="list-group-item"><strong>Engine Number:</strong> ${data.vehicle_details.engine_number}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        showError(data.message || 'Error checking vehicle eligibility');
+                    }
+                })
+                .catch(error => {
+                    showError('Network error or server not responding');
+                    console.error('Error:', error);
+                });
+            }
+            
+            // Helper function to show error
+            function showError(message) {
+                errorCard.classList.remove('d-none');
+                errorContent.innerHTML = `<p>${message}</p>`;
+            }
+            
+            // Helper function to format date
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+        });
+    </script>
+</body>
+</html> 

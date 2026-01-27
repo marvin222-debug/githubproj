@@ -1,0 +1,233 @@
+{% extends "layout.html" %}
+
+{% block title %}Atlas Database Info - ANPR System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="display-5 fw-bold">
+            <i class="fas fa-database me-3"></i>MongoDB Atlas Database Information
+        </h2>
+        <p class="lead text-secondary">Real-time database connection status and statistics</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Connection Status -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header">
+                <i class="fas fa-plug me-2"></i>Connection Status
+            </div>
+            <div class="card-body">
+                <div id="connectionStatus" class="text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-secondary">Checking connection...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Database Statistics -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header">
+                <i class="fas fa-chart-bar me-2"></i>Database Statistics
+            </div>
+            <div class="card-body">
+                <div id="databaseStats" class="text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-secondary">Loading statistics...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <!-- Sample Vehicles -->
+    <div class="col-12">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header">
+                <i class="fas fa-list me-2"></i>Sample Vehicles in Database
+            </div>
+            <div class="card-body">
+                <div id="sampleVehicles" class="text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-secondary">Loading vehicles...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function loadAtlasInfo() {
+        // Load connection status
+        fetch('/api/atlas/status')
+            .then(response => response.json())
+            .then(data => {
+                const statusDiv = document.getElementById('connectionStatus');
+                if (data.success && data.atlas_status && data.atlas_status.connected) {
+                    statusDiv.innerHTML = `
+                        <div class="text-center">
+                            <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                            <h4 class="text-success">Connected</h4>
+                            <p class="text-secondary">MongoDB Atlas is connected and ready</p>
+                            <p class="small text-muted">Database Type: ${data.database_type || 'Unknown'}</p>
+                        </div>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `
+                        <div class="text-center">
+                            <i class="fas fa-times-circle fa-4x text-danger mb-3"></i>
+                            <h4 class="text-danger">Disconnected</h4>
+                            <p class="text-secondary">MongoDB Atlas connection failed</p>
+                            <p class="small text-muted">Reason: ${data.atlas_status?.reason || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('connectionStatus').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Error loading connection status: ${error.message}
+                    </div>
+                `;
+            });
+        
+        // Load database statistics
+        fetch('/api/atlas/stats')
+            .then(response => response.json())
+            .then(data => {
+                const statsDiv = document.getElementById('databaseStats');
+                if (data.success && data.database_stats) {
+                    const stats = data.database_stats;
+                    statsDiv.innerHTML = `
+                        <div class="text-start">
+                            <div class="mb-3">
+                                <strong><i class="fas fa-car me-2 text-primary"></i>Total Vehicles:</strong>
+                                <span class="fs-4 ms-2">${stats.total_vehicles || 'Unknown'}</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong><i class="fas fa-database me-2 text-info"></i>Database Type:</strong>
+                                <span class="ms-2">${stats.database_type || 'Unknown'}</span>
+                            </div>
+                            ${stats.fuel_types ? `
+                                <div class="mb-3">
+                                    <strong><i class="fas fa-gas-pump me-2 text-success"></i>Fuel Types:</strong>
+                                    <div class="mt-2">
+                                        ${stats.fuel_types.map(ft => `<span class="badge bg-secondary me-1">${ft}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${stats.states ? `
+                                <div class="mb-3">
+                                    <strong><i class="fas fa-map-marker-alt me-2 text-warning"></i>States:</strong>
+                                    <div class="mt-2">
+                                        ${stats.states.slice(0, 10).map(s => `<span class="badge bg-info me-1">${s}</span>`).join('')}
+                                        ${stats.states.length > 10 ? `<span class="text-muted">+${stats.states.length - 10} more</span>` : ''}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    statsDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Unable to load statistics
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('databaseStats').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Error loading statistics: ${error.message}
+                    </div>
+                `;
+            });
+        
+        // Load sample vehicles
+        fetch('/api/vehicles?per_page=10')
+            .then(response => response.json())
+            .then(data => {
+                const vehiclesDiv = document.getElementById('sampleVehicles');
+                if (data.success && data.vehicles && data.vehicles.length > 0) {
+                    vehiclesDiv.innerHTML = `
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Registration Number</th>
+                                        <th>Owner</th>
+                                        <th>Make/Model</th>
+                                        <th>Fuel Type</th>
+                                        <th>State</th>
+                                        <th>Age</th>
+                                        <th>Eligible</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.vehicles.map(v => `
+                                        <tr>
+                                            <td><strong>${v.registration_number}</strong></td>
+                                            <td>${v.owner_name || 'N/A'}</td>
+                                            <td>${v.vehicle_make || 'N/A'} / ${v.vehicle_model || 'N/A'}</td>
+                                            <td><span class="badge bg-secondary">${v.fuel_type || 'N/A'}</span></td>
+                                            <td>${v.state || 'N/A'}</td>
+                                            <td>${v.age_years ? v.age_years.toFixed(1) + ' years' : 'N/A'}</td>
+                                            <td>
+                                                ${v.fuel_eligibility.eligible 
+                                                    ? '<span class="badge bg-success">Yes</span>' 
+                                                    : '<span class="badge bg-danger">No</span>'}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center mt-3">
+                            <p class="text-muted">Showing ${data.vehicles.length} of ${data.total_vehicles} vehicles</p>
+                        </div>
+                    `;
+                } else {
+                    vehiclesDiv.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>No vehicles found in database
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('sampleVehicles').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Error loading vehicles: ${error.message}
+                    </div>
+                `;
+            });
+    }
+    
+    // Load info on page load
+    document.addEventListener('DOMContentLoaded', loadAtlasInfo);
+    
+    // Refresh every 30 seconds
+    setInterval(loadAtlasInfo, 30000);
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+

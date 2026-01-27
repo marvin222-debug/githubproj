@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Petrol Station ANPR System
 
 An Automatic Number Plate Recognition (ANPR) system for petrol stations to enforce fuel restrictions based on vehicle age.
@@ -87,3 +88,7 @@ The system also provides REST API endpoints:
 - `data/`: Data storage
 - `tests/`: Test files
 - `config/`: Configuration files 
+=======
+# githubproj
+accepts the correct code only
+>>>>>>> 398b945a6bb154dea2007744c625f45ce16061d8

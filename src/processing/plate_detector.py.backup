@@ -1,0 +1,183 @@
+import cv2
+import numpy as np
+import pytesseract
+import logging
+import os
+from typing import List, Tuple, Optional, Dict
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class PlateDetector:
+    """
+    License plate detection and OCR processing
+    """
+    def __init__(self, tesseract_path: str = None, min_confidence: float = 0.5):
+        
+        Initialize the license plate detector
+        
+        Args:
+            tesseract_path: Path to Tesseract OCR executable
+            min_confidence: Minimum confidence threshold for detections
+        
+        # Set Tesseract executable path if provided
+        if tesseract_path:
+            pytesseract.pytesseract.tesseract_cmd = tesseract_path
+            
+        self.min_confidence = min_confidence
+        logger.info("License plate detector initialized")
+        
+    def preprocess_image(self, image: np.ndarray) -> np.ndarray:
+    
+        Preprocess the image for better plate detection
+        
+        Args:
+            image: Input image
+            
+        Returns:
+            Preprocessed image
+        
+        # Convert to grayscale
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Apply bilateral filter to remove noise while keeping edges sharp
+        bilateral = cv2.bilateralFilter(gray, 11, 17, 17)
+        
+        # Find edges using Canny
+        edges = cv2.Canny(bilateral, 30, 200)
+        
+        return edges
+    
+    def find_plate_contours(self, preprocessed_img: np.ndarray) -> List[np.ndarray]:
+        
+        Find contours that might be license plates
+        
+        Args:
+            preprocessed_img: Preprocessed image
+            
+        Returns:
+            List of contours
+        
+        # Find contours
+        contours, _ = cv2.findContours(preprocessed_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # Filter contours to find license plate candidates
+        plate_contours = []
+        for contour in sorted(contours, key=cv2.contourArea, reverse=True)[:10]:
+            perimeter = cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, 0.02 * perimeter, True)
+            
+            # License plates typically have 4 corners (rectangle)
+            if len(approx) == 4:
+                # Check area ratio and aspect ratio to filter out non-plates
+                x, y, w, h = cv2.boundingRect(contour)
+                area = w * h
+                aspect_ratio = float(w) / h
+                
+                # License plates typically have aspect ratio between 2 and 5
+                if aspect_ratio > 1.5 and aspect_ratio < 6 and area > 1000:
+                    plate_contours.append(contour)
+        
+        return plate_contours
+    
+    def extract_plate_regions(self, image: np.ndarray, contours: List[np.ndarray]) -> List[Tuple[np.ndarray, Tuple[int, int, int, int]]]:
+        
+        Extract regions of interest containing license plates
+        
+        Args:
+            image: Original image
+            contours: List of contours
+            
+        Returns:
+            List of tuples with plate image and its coordinates (x, y, w, h)
+        
+        plates = []
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            
+            # Extract plate region
+            plate_img = image[y:y+h, x:x+w]
+            plates.append((plate_img, (x, y, w, h)))
+            
+        return plates
+    
+    def recognize_text(self, plate_img: np.ndarray) -> str:
+        
+        Perform OCR on the license plate image
+        
+        Args:
+            plate_img: License plate image
+            
+        Returns:
+            Extracted text (license plate number)
+    
+        try:
+            # Convert to grayscale if needed
+            if len(plate_img.shape) == 3:
+                plate_img = cv2.cvtColor(plate_img, cv2.COLOR_BGR2GRAY)
+            
+            # Apply thresholding to enhance text
+            _, plate_img = cv2.threshold(plate_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            
+            # Apply OCR
+            custom_config = r'--oem 3 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+            text = pytesseract.image_to_string(plate_img, config=custom_config).strip()
+            
+            # Remove spaces and non-alphanumeric chars
+            text = ''.join(char for char in text if char.isalnum())
+            
+            return text
+        except Exception as e:
+            logger.error(f"OCR error: {str(e)}")
+            return ""
+    
+    def detect_and_read_plate(self, image: np.ndarray) -> Optional[Dict]:
+        
+        Main function to detect and read license plate
+        
+        Args:
+            image: Input image
+            
+        Returns:
+            Dictionary with plate text and coordinates or None if no plate found
+        
+        # Preprocess image
+        processed_img = self.preprocess_image(image)
+        
+        # Find contours
+        plate_contours = self.find_plate_contours(processed_img)
+        
+        if not plate_contours:
+            logger.info("No license plate detected")
+            return None
+        
+        # Extract plate regions
+        plates = self.extract_plate_regions(image, plate_contours)
+        
+        best_result = None
+        max_confidence = 0
+        
+        for plate_img, coords in plates:
+            # OCR to extract text
+            plate_text = self.recognize_text(plate_img)
+            
+            # Simple confidence estimation based on text length
+            # Typical license plates have 5-10 alphanumeric characters
+            if len(plate_text) >= 4:
+                confidence = min(1.0, len(plate_text) / 10)
+                
+                if confidence > max_confidence and confidence >= self.min_confidence:
+                    max_confidence = confidence
+                    best_result = {
+                        "text": plate_text,
+                        "confidence": confidence,
+                        "coordinates": coords
+                    }
+        
+        if best_result:
+            logger.info(f"License plate detected: {best_result['text']} (Confidence: {best_result['confidence']:.2f})")
+            return best_result
+        else:
+            logger.info("No valid license plate text detected")
+            return None 

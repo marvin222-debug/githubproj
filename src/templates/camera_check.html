@@ -1,0 +1,682 @@
+{% extends "layout.html" %}
+
+{% block title %}ANPR System - Live Camera{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="h3 mb-0"><i class="fas fa-camera-retro text-primary me-2"></i>License Plate Recognition</h1>
+                <div class="btn-group" role="group">
+                    <button id="start-camera" class="btn btn-success">
+                        <i class="fas fa-play me-2"></i>Start Camera
+                    </button>
+                    <button id="stop-camera" class="btn btn-danger" disabled>
+                        <i class="fas fa-stop me-2"></i>Stop
+                    </button>
+                    <button id="capture-btn" class="btn btn-primary" disabled>
+                        <i class="fas fa-camera me-2"></i>Scan Now
+                    </button>
+                </div>
+            </div>
+            <p class="text-muted">Point the camera at a vehicle's license plate for automatic recognition</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Camera Feed Section -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-video me-2"></i>Live Camera Feed</span>
+                    <div class="btn-group">
+                        <button id="toggle-scan" class="btn btn-sm btn-outline-primary" disabled>
+                            <i class="fas fa-search me-1"></i> Toggle Auto Scan
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <div id="video-container" class="position-relative">
+                        <video id="video" autoplay playsinline class="w-100" style="display: block;"></video>
+                        <div id="plate-overlay"></div>
+                        <div id="camera-status"
+                            class="position-absolute top-0 start-0 p-2 bg-dark bg-opacity-75 text-white small">
+                            <i class="fas fa-circle text-danger me-1"></i> Camera Offline
+                        </div>
+                        <div id="processing-status"
+                            class="position-absolute bottom-0 start-0 p-2 bg-dark bg-opacity-75 text-white small w-100 d-none">
+                            <i class="fas fa-spinner fa-spin me-1"></i> <span id="status-text">Processing
+                                image...</span>
+                        </div>
+                    </div>
+                    <canvas id="canvas" class="d-none"></canvas>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i> Ensure good lighting and position the plate clearly
+                        </small>
+                        <div id="fps-counter" class="badge bg-secondary">0 FPS</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detection Results Section -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="fas fa-car me-2"></i>Detection Results
+                </div>
+                <div class="card-body p-0 d-flex flex-column">
+                    <!-- Loading State -->
+                    <div id="loadingSpinner"
+                        class="d-none flex-grow-1 d-flex flex-column align-items-center justify-content-center p-5 text-center">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Processing...</span>
+                        </div>
+                        <h5 class="h6 mb-1">Processing Plate</h5>
+                        <p class="text-muted small mb-0">Analyzing captured image...</p>
+                    </div>
+
+                    <!-- No Plate Detected -->
+                    <div id="noPlateContainer"
+                        class="d-flex flex-column align-items-center justify-content-center p-5 text-center">
+                        <div class="mb-3 text-muted">
+                            <i class="fas fa-8x fa-car-side opacity-25"></i>
+                        </div>
+                        <h5 class="h6 mb-2">No License Plate Detected</h5>
+                        <p class="text-muted small mb-0">Point the camera at a vehicle's license plate to begin scanning
+                        </p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="errorContainer" class="d-none p-4">
+                        <div class="alert alert-danger mb-0">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">Processing Error</h6>
+                                    <p id="errorMessage" class="mb-0 small">An error occurred while processing the image
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detection Results -->
+                    <div id="resultContainer" class="d-none">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-history me-1"></i>
+                            <span id="last-updated">Never</span>
+                        </small>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="autoSaveToggle" checked>
+                            <label class="form-check-label small" for="autoSaveToggle">Auto-save</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detection Log Section -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-list-ul me-2"></i>Detection Log
+                    <button id="clear-log" class="btn btn-sm btn-outline-secondary float-end py-0">
+                        <i class="fas fa-trash-alt me-1"></i> Clear
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div id="detection-log" class="list-group list-group-flush">
+                        <!-- Log entries will be added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Atlas Plates Section -->
+        <div class="col-12 mt-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-database me-2"></i>Plates in Atlas Database
+                        <span id="atlas-plates-count" class="badge bg-secondary ms-2">0</span>
+                    </div>
+                    <div class="btn-group">
+                        <button id="refresh-plates" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh
+                        </button>
+                        <button id="copy-plates" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-copy me-1"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" style="max-height: 260px; overflow:auto;">
+                    <pre id="atlas-plates" class="mb-0" style="white-space: pre-wrap; word-break: break-word;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- DOM Elements ---
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const startCameraBtn = document.getElementById('start-camera');
+        const stopCameraBtn = document.getElementById('stop-camera');
+        const captureBtn = document.getElementById('capture-btn');
+        const toggleScanBtn = document.getElementById('toggle-scan');
+        const clearLogBtn = document.getElementById('clear-log');
+        const plateOverlay = document.getElementById('plate-overlay');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const resultContainer = document.getElementById('resultContainer');
+        const noPlateContainer = document.getElementById('noPlateContainer');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        const detectionLog = document.getElementById('detection-log');
+        const lastUpdated = document.getElementById('last-updated');
+        const fpsCounter = document.getElementById('fps-counter');
+        const cameraStatus = document.getElementById('camera-status');
+        const atlasPlatesEl = document.getElementById('atlas-plates');
+        const atlasPlatesCountEl = document.getElementById('atlas-plates-count');
+
+        // Canvas setup
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        // FPS calculation
+        let lastFrameTime = 0;
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+        let currentFps = 0;
+
+        // --- State Variables ---
+        let stream = null;
+        let isAutoScanActive = false;
+        let scanInterval = null;
+        let lastPlate = '';
+        let plateCheckCooldown = false;
+        let cameraRetryCount = 0;
+        const maxRetries = 3;
+        let resultDisplayTimeout = null;
+        let animationFrameId = null;
+        let lastDetectionTime = 0;
+        const DETECTION_COOLDOWN = 3000; // 3 seconds between detections
+
+        // Performance tracking
+        const performanceMetrics = {
+            detectionTimes: [],
+            lastDetection: null,
+            totalDetections: 0,
+            successRate: 0,
+            avgProcessingTime: 0
+        };
+
+        // --- Helper Functions ---
+        function updateFPS(timestamp) {
+            if (!lastFrameTime) {
+                lastFrameTime = timestamp;
+                lastFpsUpdate = timestamp;
+                frameCount = 0;
+            }
+
+            frameCount++;
+
+            // Update FPS counter every second
+            if (timestamp - lastFpsUpdate >= 1000) {
+                currentFps = Math.round((frameCount * 1000) / (timestamp - lastFpsUpdate));
+                fpsCounter.textContent = `${currentFps} FPS`;
+                frameCount = 0;
+                lastFpsUpdate = timestamp;
+            }
+
+            lastFrameTime = timestamp;
+            animationFrameId = requestAnimationFrame(updateFPS);
+        }
+
+        function updateLastUpdated() {
+            const now = new Date();
+            lastUpdated.textContent = now.toLocaleTimeString();
+        }
+
+        function addLog(message, type = 'info') {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            const typeStr = String(type || 'info').toLowerCase();
+            logEntry.className = `list-group-item list-group-item-action ${typeStr === 'error' ? 'list-group-item-danger' : ''} ${typeStr === 'success' ? 'list-group-item-success' : ''}`;
+
+            let icon = 'info-circle';
+            if (typeStr === 'error') icon = 'exclamation-triangle';
+            if (typeStr === 'success') icon = 'check-circle';
+
+            logEntry.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <div>
+                        <i class="fas fa-${icon} me-2"></i>
+                        <span class="fw-medium">${message}</span>
+                    </div>
+                    <small class="text-muted">${timeStr}</small>
+                </div>
+            `;
+
+            detectionLog.insertBefore(logEntry, detectionLog.firstChild);
+
+            // Limit log entries to 100
+            if (detectionLog.children.length > 100) {
+                detectionLog.removeChild(detectionLog.lastChild);
+            }
+
+            console.log(`[${timeStr}] [${typeStr.toUpperCase()}] ${message}`);
+        }
+
+        async function loadAtlasPlates() {
+            try {
+                atlasPlatesEl.textContent = 'Loading plates...';
+                const res = await fetch('/api/atlas/plates');
+                const text = await res.text();
+                const data = JSON.parse(text || '{}');
+                if (data && data.success) {
+                    const list = (data.plates || []).filter(Boolean);
+                    atlasPlatesCountEl.textContent = list.length;
+                    atlasPlatesEl.textContent = list.join('\n');
+                } else {
+                    const msg = (data && data.message) ? data.message : 'Failed to load plates';
+                    atlasPlatesEl.textContent = `Error: ${msg}`;
+                }
+            } catch (e) {
+                atlasPlatesEl.textContent = `Error loading plates: ${e.message}`;
+            }
+        }
+
+        function displayVehicleResults(data) {
+            // Format registration date
+            const regDate = new Date(data.vehicle_details.registration_date);
+            const formattedDate = regDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            // Calculate vehicle age
+            const ageYears = data.vehicle_details.age_years ||
+                Math.floor((new Date() - regDate) / (1000 * 60 * 60 * 24 * 365));
+
+            const eligibility = data.fuel_eligibility || {};
+
+            let resultHTML = `
+                <div class="p-4">
+                    <!-- Plate Number -->
+                    <div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded" 
+                         style="background: linear-gradient(135deg, #f0f4ff 0%, #e6edff 100%);">
+                        <div>
+                            <div class="text-muted small mb-1">DETECTED PLATE</div>
+                            <h2 class="mb-0 text-primary fw-bold">${data.registration_number}</h2>
+                        </div>
+                        <div class="bg-white rounded-circle p-3 shadow-sm">
+                            <i class="fas fa-car-side fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Vehicle Details -->
+                    <div class="card border-0 mb-4">
+                        <div class="card-body">
+                            <h6 class="text-uppercase text-muted mb-3">
+                                <i class="fas fa-car me-2"></i>Vehicle Details
+                            </h6>
+                            
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <div class="p-3 bg-light rounded">
+                                        <div class="text-muted small mb-1">Make</div>
+                                        <div class="fw-medium">${data.vehicle_details.make || 'N/A'}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-3 bg-light rounded">
+                                        <div class="text-muted small mb-1">Model</div>
+                                        <div class="fw-medium">${data.vehicle_details.model || 'N/A'}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-3 bg-light rounded">
+                                        <div class="text-muted small mb-1">Fuel Type</div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas ${data.vehicle_details.fuel_type === 'PETROL' ? 'fa-gas-pump' : 'fa-oil-can'} me-2 text-${data.vehicle_details.fuel_type === 'PETROL' ? 'success' : 'warning'}"></i>
+                                            <span class="fw-medium">${data.vehicle_details.fuel_type || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-3 bg-light rounded">
+                                        <div class="text-muted small mb-1">Registered</div>
+                                        <div class="fw-medium">${formattedDate} (${ageYears} yrs)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Eligibility Status -->
+                    <div class="text-center mb-4 ${eligibility.eligible ? 'fuel-status-allowed' : 'fuel-status-denied'}">
+                        <h3 class="mb-3">
+                            ${eligibility.eligible ? 'FUEL ALLOWED' : 'FUEL DENIED'}
+                        </h3>
+                        <p class="mb-0">
+                            ${eligibility.reason || (eligibility.eligible ? 'Vehicle meets the requirements' : 'Vehicle does not meet requirements')}
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            // Update the result container
+            resultContainer.innerHTML = resultHTML;
+            resultContainer.classList.remove('d-none');
+
+            // Hide other containers
+            noPlateContainer.classList.add('d-none');
+            errorContainer.classList.add('d-none');
+
+            // Add plate overlay if coordinates are available
+            if (data.plate_box) {
+                addPlateOverlay(data.plate_box, data.registration_number);
+            }
+        }
+
+        function clearResults() {
+            resultContainer.classList.add('d-none');
+            resultContainer.innerHTML = '';
+            plateOverlay.innerHTML = '';
+            lastPlate = '';
+        }
+
+        function addPlateOverlay(box, text) {
+            const scaleX = video.clientWidth / video.videoWidth;
+            const scaleY = video.clientHeight / video.videoHeight;
+            plateOverlay.innerHTML = `
+                <div class="plate-box" style="
+                    left: ${box.x * scaleX}px;
+                    top: ${box.y * scaleY}px;
+                    width: ${box.width * scaleX}px;
+                    height: ${box.height * scaleY}px;">
+                    ${text}
+                </div>`;
+        }
+
+        // --- Camera Logic ---
+        async function startCamera() {
+            try {
+                // Show loading state
+                startCameraBtn.disabled = true;
+                startCameraBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Starting...';
+
+                addLog('Initializing camera...', 'info');
+
+                // Try different camera configurations
+                const configs = [
+                    {
+                        video: {
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 },
+                            frameRate: { ideal: 30 },
+                            facingMode: 'environment'
+                        }
+                    },
+                    {
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            frameRate: { ideal: 30 }
+                        }
+                    },
+                    {
+                        video: {
+                            width: { ideal: 640 },
+                            height: { ideal: 480 },
+                            frameRate: { ideal: 30 }
+                        }
+                    },
+                    { video: true }
+                ];
+
+                let cameraStarted = false;
+                for (let i = 0; i < configs.length && !cameraStarted; i++) {
+                    try {
+                        addLog(`Trying camera configuration #${i + 1}...`, 'info');
+                        stream = await navigator.mediaDevices.getUserMedia(configs[i]);
+
+                        if (stream.getVideoTracks().length === 0) {
+                            throw new Error('No video tracks available');
+                        }
+
+                        const track = stream.getVideoTracks()[0];
+                        if (track.readyState === 'live') {
+                            video.srcObject = stream;
+                            cameraStarted = true;
+                            addLog('✅ Camera started successfully');
+                            await new Promise(resolve => video.onloadedmetadata = resolve);
+                            startCameraBtn.disabled = true;
+                            stopCameraBtn.disabled = false;
+                            captureBtn.disabled = false;
+                            toggleScanBtn.disabled = false;
+                            errorContainer.classList.add('d-none');
+                            cameraRetryCount = 0;
+                            break;
+                        }
+                    } catch (configError) {
+                        addLog(`Config #${i + 1} failed: ${configError.name}`, true);
+                        if (stream) stream.getTracks().forEach(track => track.stop());
+                    }
+                }
+                if (!cameraStarted) throw new Error('All camera configurations failed.');
+            } catch (err) {
+                cameraRetryCount++;
+                addLog(`Camera error (attempt ${cameraRetryCount}): ${err.message}`, true);
+                if (cameraRetryCount < maxRetries) {
+                    addLog(`Retrying in 2s...`);
+                    setTimeout(startCamera, 2000);
+                } else {
+                    errorMessage.textContent = 'Unable to access camera. Please check permissions and try again.';
+                    errorContainer.classList.remove('d-none');
+                    startCameraBtn.disabled = false;
+                }
+            }
+        }
+
+        function stopCamera() {
+            addLog('Stopping camera...');
+            if (isAutoScanActive) toggleAutoScan();
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.srcObject = null;
+            startCameraBtn.disabled = false;
+            stopCameraBtn.disabled = true;
+            captureBtn.disabled = true;
+            toggleScanBtn.disabled = true;
+            clearResults();
+            noPlateContainer.classList.remove('d-none');
+            addLog('Camera stopped.');
+        }
+
+        function toggleAutoScan() {
+            isAutoScanActive = !isAutoScanActive;
+            if (isAutoScanActive) {
+                addLog('Auto scanning started (4s interval)');
+                toggleScanBtn.innerHTML = '<i class="fas fa-pause me-2"></i>Stop Auto Scan';
+                toggleScanBtn.classList.replace('btn-info', 'btn-danger');
+                scanInterval = setInterval(captureAndProcess, 4000);
+            } else {
+                addLog('Auto scanning stopped');
+                toggleScanBtn.innerHTML = '<i class="fas fa-search me-2"></i>Start Auto Scan';
+                toggleScanBtn.classList.replace('btn-danger', 'btn-info');
+                clearInterval(scanInterval);
+            }
+        }
+
+        // --- Processing Logic ---
+        function captureAndProcess() {
+            if (!stream || video.videoWidth === 0) {
+                addLog('Video not ready for capture!', true);
+                return;
+            }
+            if (plateCheckCooldown) {
+                addLog('Cooldown active, skipping capture.');
+                return;
+            }
+
+            // Update UI to show processing status
+            const processingStatus = document.getElementById('processing-status');
+            const statusText = document.getElementById('status-text');
+            processingStatus.classList.remove('d-none');
+            statusText.textContent = 'Processing image...';
+
+            try {
+                // Downscale very large frames to speed up server-side OCR
+                const maxWidth = 1280; // cap width to reduce processing time
+                const scale = Math.min(1, maxWidth / (video.videoWidth || maxWidth));
+                canvas.width = Math.max(1, Math.round((video.videoWidth || maxWidth) * scale));
+                canvas.height = Math.max(1, Math.round((video.videoHeight || maxWidth) * scale));
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                addLog(`📸 Capturing frame (scaled): ${canvas.width}x${canvas.height}`);
+
+                const videoContainer = document.getElementById('video-container');
+                const flashOverlay = document.createElement('div');
+                Object.assign(flashOverlay.style, { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'white', opacity: '0.7', zIndex: '1000' });
+                videoContainer.appendChild(flashOverlay);
+                setTimeout(() => flashOverlay.remove(), 150);
+
+                canvas.toBlob(function (blob) {
+                    if (!blob) { addLog('Failed to create image blob', true); return; }
+                    addLog(`📦 Image captured, size: ${(blob.size / 1024).toFixed(1)}KB`);
+
+                    const formData = new FormData();
+                    formData.append('image', blob, 'capture.jpg');
+
+                    addLog('🤖 Processing image with AI Detector...');
+                    loadingSpinner.classList.remove('d-none');
+                    noPlateContainer.classList.add('d-none');
+                    errorContainer.classList.add('d-none');
+                    captureBtn.disabled = true;
+                    captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+
+                    const timeoutId = setTimeout(() => {
+                        addLog('Processing timeout', true);
+                        errorMessage.textContent = 'Processing timed out. Please try again.';
+                        errorContainer.classList.remove('d-none');
+                        loadingSpinner.classList.add('d-none');
+                    }, 40000); // allow up to 40s for slower CPUs/first OCR load
+
+                    fetch('/api/process', { method: 'POST', body: formData })
+                        .then(async (response) => {
+                            // Handle non-2xx early and robust JSON parsing
+                            const raw = await response.text();
+                            let data;
+                            try { data = raw ? JSON.parse(raw) : {}; } catch (_) { data = { success: false, message: raw || 'Invalid server response' }; }
+                            if (!response.ok) {
+                                const msg = (data && data.message) ? data.message : `HTTP ${response.status}`;
+                                throw new Error(msg);
+                            }
+                            return data;
+                        })
+                        .then(data => {
+                            clearTimeout(timeoutId);
+                            loadingSpinner.classList.add('d-none');
+                            captureBtn.disabled = false;
+                            captureBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Scan Now';
+                            processingStatus.classList.add('d-none');
+                            addLog(`📋 Server response: ${JSON.stringify(data)}`);
+
+                            if (data.success && data.registration_number) {
+                                const timeSinceLastDetection = Date.now() - (window.lastDetectionTime || 0);
+                                if (data.registration_number !== lastPlate || timeSinceLastDetection > 5000) {
+                                    lastPlate = data.registration_number;
+                                    window.lastDetectionTime = Date.now();
+                                    addLog(`🎯 SUCCESS! Plate: ${data.registration_number}`);
+                                    displayVehicleResults(data);
+                                    if (data.plate_box) addPlateOverlay(data.plate_box, data.registration_number);
+                                    errorContainer.classList.add('d-none');
+                                    if (resultDisplayTimeout) clearTimeout(resultDisplayTimeout);
+                                    if (isAutoScanActive) {
+                                        resultDisplayTimeout = setTimeout(() => addLog('Ready for next scan...'), 4000);
+                                    }
+                                } else {
+                                    addLog('Same plate detected, maintaining display.');
+                                }
+                            } else {
+                                const msg = data && data.message ? data.message : 'No valid plate detected.';
+                                addLog(`❌ ${msg}`, true);
+                                errorMessage.textContent = msg;
+                                errorContainer.classList.remove('d-none');
+                                if (!resultContainer.classList.contains('d-none')) {
+                                    setTimeout(() => {
+                                        clearResults();
+                                        noPlateContainer.classList.remove('d-none');
+                                    }, 2000);
+                                }
+                                if (data && data.message) addLog(`💬 Server: ${data.message}`);
+                            }
+                            plateCheckCooldown = true;
+                            setTimeout(() => plateCheckCooldown = false, 1500);
+                        })
+                        .catch(error => {
+                            clearTimeout(timeoutId);
+                            loadingSpinner.classList.add('d-none');
+                            captureBtn.disabled = false;
+                            captureBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Scan Now';
+                            processingStatus.classList.add('d-none');
+                            errorMessage.textContent = `Server error or network issue: ${error.message}`;
+                            errorContainer.classList.remove('d-none');
+                            addLog(`Fetch error: ${error.message}`, true);
+                        });
+                }, 'image/jpeg', 0.85);
+            } catch (e) {
+                addLog(`Capture failed: ${e.message}`, true);
+            }
+        }
+
+        // --- Event Listeners ---
+        startCameraBtn.addEventListener('click', async () => {
+            await startCamera();
+            // Update camera status UI
+            cameraStatus.innerHTML = '<i class="fas fa-circle text-success me-1"></i> Camera Online';
+        });
+        stopCameraBtn.addEventListener('click', () => {
+            stopCamera();
+            cameraStatus.innerHTML = '<i class="fas fa-circle text-danger me-1"></i> Camera Offline';
+        });
+        captureBtn.addEventListener('click', captureAndProcess);
+        toggleScanBtn.addEventListener('click', toggleAutoScan);
+
+        // Load Atlas plates once on page load
+        document.getElementById('refresh-plates').addEventListener('click', loadAtlasPlates);
+        document.getElementById('copy-plates').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(atlasPlatesEl.textContent || '');
+                addLog('Copied plate list to clipboard', 'success');
+            } catch (e) {
+                addLog('Failed to copy plate list', 'error');
+            }
+        });
+        loadAtlasPlates();
+
+        addLog('ANPR Camera System initialized with Ultra-Fast Detector.');
+        addLog('Optimized for 3-4 second result display timing.');
+        addLog('Ready to detect license plates with improved visibility.');
+        addLog('Click "Start Camera" to begin detection.');
+    });
+</script>
+{% endblock %}

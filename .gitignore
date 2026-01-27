@@ -1,0 +1,14 @@
+
+# Auto-generated entries - Added by Code Validator
+# These files/folders should not be pushed to Git
+*.log
+*.pyc
+__pycache__
+
+# Environment files - automatically added by Code Validator
+.env
+.env.local
+.env.example
+.env.development
+.env.production
+.env.*

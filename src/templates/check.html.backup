@@ -1,0 +1,247 @@
+{% extends "layout.html" %}
+
+{% block title %}Check Registration - ANPR System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <h2>Check Vehicle Registration</h2>
+        <p class="lead">Enter a vehicle registration number to check fuel eligibility</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Registration Number</h4>
+            </div>
+            <div class="card-body">
+                <form id="check-form">
+                    <div class="mb-3">
+                        <label for="registrationNumber" class="form-label">Vehicle Registration Number</label>
+                        <input type="text" class="form-control" id="registrationNumber" name="registrationNumber" placeholder="Enter registration number (e.g., KA01MJ2023)" required>
+                        <div class="form-text">Enter the exact registration number without spaces. Try: KA01MJ2023, DL05AB1234, or MH02CD5678</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="checkButton">Check Eligibility</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4>Results</h4>
+            </div>
+            <div class="card-body">
+                <div id="loadingSpinner" class="text-center d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Checking registration...</p>
+                </div>
+                
+                <div id="resultContainer" class="d-none">
+                    <div class="alert alert-primary mb-3" id="resultPlate">
+                        <strong>Registration Number:</strong> <span id="plateNumber"></span>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header">Vehicle Details</div>
+                        <div class="card-body">
+                            <table class="table table-striped">
+                                <tbody>
+                                    <tr>
+                                        <th>Registration Date</th>
+                                        <td id="regDate"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Fuel Type</th>
+                                        <td id="fuelType"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Vehicle Age</th>
+                                        <td id="vehicleAge"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Make/Model</th>
+                                        <td id="makeModel"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div id="eligibilityResult" class="text-center p-3 mb-3 rounded">
+                        <h3 id="eligibilityStatus"></h3>
+                        <p id="eligibilityReason" class="mb-0"></p>
+                    </div>
+                </div>
+                
+                <div id="errorContainer" class="d-none">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">Error</h5>
+                        <p id="errorMessage"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkForm = document.getElementById('check-form');
+        const registrationNumber = document.getElementById('registrationNumber');
+        const checkButton = document.getElementById('checkButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const resultContainer = document.getElementById('resultContainer');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Debug helper function
+        function showDebugStatus(message) {
+            console.log(message);
+            document.title = "Debug: " + message;
+        }
+        
+        // Process form submission
+        checkForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            showDebugStatus("Form submitted");
+            
+            // Disable button during processing
+            checkButton.disabled = true;
+            
+            // Hide previous results
+            resultContainer.classList.add('d-none');
+            errorContainer.classList.add('d-none');
+            
+            // Show loading spinner
+            loadingSpinner.classList.remove('d-none');
+            
+            // Get registration number
+            const plate = registrationNumber.value.trim().toUpperCase();
+            showDebugStatus("Checking plate: " + plate);
+            
+            // Make API request - with debug tracking
+            showDebugStatus("Sending API request");
+            const apiUrl = `/api/check-plate?plate=${encodeURIComponent(plate)}`;
+            showDebugStatus("URL: " + apiUrl);
+            
+            // For debugging - hard-code a response if needed
+            /*
+            setTimeout(() => {
+                // Sample response for testing
+                const data = {
+                    "success": true,
+                    "registration_number": plate,
+                    "vehicle_details": {
+                        "registration_date": "2023-01-15T00:00:00",
+                        "fuel_type": "PETROL",
+                        "age_years": 2.5,
+                        "make": "Toyota",
+                        "model": "Corolla"
+                    },
+                    "fuel_eligibility": {
+                        "eligible": true,
+                        "reason": null,
+                        "age_limit": 15
+                    }
+                };
+                
+                handleResponse(data);
+            }, 1000);
+            */
+            
+            // Actual API call
+            fetch(apiUrl)
+            .then(response => {
+                showDebugStatus("API response received with status: " + response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json().catch(error => {
+                    showDebugStatus("JSON parse error: " + error);
+                    throw new Error("Invalid JSON in response");
+                });
+            })
+            .then(data => {
+                handleResponse(data);
+            })
+            .catch(error => {
+                // Hide loading spinner
+                loadingSpinner.classList.add('d-none');
+                
+                // Show error
+                showDebugStatus("API call failed: " + error);
+                console.error("API error:", error);
+                errorMessage.textContent = 'Network error or server issue. Please try again.';
+                errorContainer.classList.remove('d-none');
+                
+                // Re-enable button
+                checkButton.disabled = false;
+            });
+            
+            function handleResponse(data) {
+                // Hide loading spinner
+                loadingSpinner.classList.add('d-none');
+                showDebugStatus("Processing API data: " + JSON.stringify(data).substring(0, 100) + "...");
+                
+                if (data.success) {
+                    // Display results
+                    document.getElementById('plateNumber').textContent = data.registration_number;
+                    
+                    // Format the date
+                    try {
+                        const date = new Date(data.vehicle_details.registration_date);
+                        document.getElementById('regDate').textContent = date.toLocaleDateString();
+                    } catch (e) {
+                        document.getElementById('regDate').textContent = data.vehicle_details.registration_date || 'Unknown';
+                    }
+                    
+                    document.getElementById('fuelType').textContent = data.vehicle_details.fuel_type;
+                    document.getElementById('vehicleAge').textContent = data.vehicle_details.age_years + ' years';
+                    
+                    // Handle make/model carefully
+                    const make = data.vehicle_details.make || data.vehicle_details.vehicle_make || 'N/A';
+                    const model = data.vehicle_details.model || data.vehicle_details.vehicle_model || 'N/A';
+                    document.getElementById('makeModel').textContent = `${make} / ${model}`;
+                    
+                    // Set eligibility status
+                    const eligibilityStatus = document.getElementById('eligibilityStatus');
+                    const eligibilityReason = document.getElementById('eligibilityReason');
+                    const eligibilityResult = document.getElementById('eligibilityResult');
+                    
+                    if (data.fuel_eligibility.eligible) {
+                        eligibilityStatus.textContent = 'FUEL ALLOWED';
+                        eligibilityReason.textContent = `Vehicle is within the age limit (${data.fuel_eligibility.age_limit} years)`;
+                        eligibilityResult.className = 'text-center p-3 mb-3 rounded bg-success text-white';
+                    } else {
+                        eligibilityStatus.textContent = 'FUEL DENIED';
+                        eligibilityReason.textContent = data.fuel_eligibility.reason;
+                        eligibilityResult.className = 'text-center p-3 mb-3 rounded bg-danger text-white';
+                    }
+                    
+                    showDebugStatus("Results displayed successfully");
+                    resultContainer.classList.remove('d-none');
+                } else {
+                    // Show error
+                    showDebugStatus("API error: " + data.message);
+                    errorMessage.textContent = data.message || 'Vehicle information not found.';
+                    errorContainer.classList.remove('d-none');
+                }
+                
+                // Re-enable button
+                checkButton.disabled = false;
+            }
+        });
+    });
+</script>
+{% endblock %} 

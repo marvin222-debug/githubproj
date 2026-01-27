@@ -1,0 +1,249 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Vehicle - ANPR System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12 text-center">
+        <h2 class="display-5 fw-bold"><i class="fas fa-plus-circle me-3"></i>Add New Vehicle</h2>
+        <p class="lead text-secondary">Add a new vehicle to the database for eligibility checking</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header">
+                <i class="fas fa-car me-2"></i>Vehicle Information Form
+            </div>
+            <div class="card-body">
+                <form id="addVehicleForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="registrationNumber" class="form-label fw-bold">
+                                    <i class="fas fa-id-card me-2"></i>Registration Number <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="registrationNumber" name="registrationNumber"
+                                       placeholder="e.g. KA01MJ2023" required>
+                                <div class="form-text text-secondary">
+                                    <i class="fas fa-info-circle me-1"></i>Format: [STATE][DISTRICT][SERIES][NUMBER]
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="registrationDate" class="form-label fw-bold">
+                                    <i class="fas fa-calendar me-2"></i>Registration Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" id="registrationDate" name="registrationDate" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="fuelType" class="form-label fw-bold">
+                                    <i class="fas fa-gas-pump me-2"></i>Fuel Type <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="fuelType" name="fuelType" required>
+                                    <option value="">Select Fuel Type</option>
+                                    <option value="PETROL">Petrol</option>
+                                    <option value="DIESEL">Diesel</option>
+                                    <option value="CNG">CNG</option>
+                                    <option value="ELECTRIC">Electric</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="ownerName" class="form-label fw-bold">
+                                    <i class="fas fa-user me-2"></i>Owner Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="ownerName" name="ownerName" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="vehicleMake" class="form-label fw-bold">
+                                    <i class="fas fa-industry me-2"></i>Vehicle Make <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="vehicleMake" name="vehicleMake"
+                                       placeholder="e.g. Maruti Suzuki" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="vehicleModel" class="form-label fw-bold">
+                                    <i class="fas fa-car me-2"></i>Vehicle Model <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="vehicleModel" name="vehicleModel"
+                                       placeholder="e.g. Swift" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="chassisNumber" class="form-label">
+                                    <i class="fas fa-cogs me-2"></i>Chassis Number
+                                </label>
+                                <input type="text" class="form-control" id="chassisNumber" name="chassisNumber">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="engineNumber" class="form-label">
+                                    <i class="fas fa-cog me-2"></i>Engine Number
+                                </label>
+                                <input type="text" class="form-control" id="engineNumber" name="engineNumber">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-plus me-2"></i>Add Vehicle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="mt-4 d-none" id="successCard">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-success">
+                    <h4 class="mb-0"><i class="fas fa-check-circle me-2"></i>Success</h4>
+                </div>
+                <div class="card-body text-center">
+                    <p class="mb-3">Vehicle has been added successfully to the database.</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <button class="btn btn-primary" id="checkEligibilityBtn">
+                            <i class="fas fa-search me-2"></i>Check Eligibility Now
+                        </button>
+                        <button class="btn btn-outline-secondary" id="addAnotherBtn">
+                            <i class="fas fa-plus me-2"></i>Add Another Vehicle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-none" id="errorCard">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-danger">
+                    <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Error</h4>
+                </div>
+                <div class="card-body" id="errorContent">
+                    <!-- Error message will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addVehicleForm = document.getElementById('addVehicleForm');
+        const successCard = document.getElementById('successCard');
+        const errorCard = document.getElementById('errorCard');
+        const errorContent = document.getElementById('errorContent');
+        const checkEligibilityBtn = document.getElementById('checkEligibilityBtn');
+        const addAnotherBtn = document.getElementById('addAnotherBtn');
+        let lastAddedPlate = '';
+
+        // Form submission
+        addVehicleForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Hide previous alerts
+            successCard.classList.add('d-none');
+            errorCard.classList.add('d-none');
+
+            // Get form data
+            const formData = {
+                registration_number: document.getElementById('registrationNumber').value.toUpperCase(),
+                registration_date: document.getElementById('registrationDate').value,
+                fuel_type: document.getElementById('fuelType').value,
+                owner_name: document.getElementById('ownerName').value,
+                vehicle_make: document.getElementById('vehicleMake').value,
+                vehicle_model: document.getElementById('vehicleModel').value,
+                chassis_number: document.getElementById('chassisNumber').value,
+                engine_number: document.getElementById('engineNumber').value
+            };
+
+            // Validate required fields
+            if (!formData.registration_number || !formData.registration_date ||
+                !formData.fuel_type || !formData.owner_name ||
+                !formData.vehicle_make || !formData.vehicle_model) {
+                errorCard.classList.remove('d-none');
+                errorContent.textContent = 'Please fill in all required fields.';
+                return;
+            }
+
+            // Save the registration number
+            lastAddedPlate = formData.registration_number;
+
+            // Show loading state
+            const submitBtn = addVehicleForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding Vehicle...';
+            submitBtn.disabled = true;
+
+            // Send data to API
+            fetch('/api/add-vehicle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Restore button
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+
+                if (data.success) {
+                    // Show success message
+                    successCard.classList.remove('d-none');
+                    addVehicleForm.reset();
+                } else {
+                    // Show error message
+                    errorCard.classList.remove('d-none');
+                    errorContent.textContent = data.message || 'An error occurred while adding the vehicle.';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Restore button
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                errorCard.classList.remove('d-none');
+                errorContent.textContent = 'An error occurred while adding the vehicle. Please try again.';
+            });
+        });
+
+        // Check eligibility button
+        checkEligibilityBtn.addEventListener('click', function() {
+            if (lastAddedPlate) {
+                window.location.href = `/check?plate=${lastAddedPlate}`;
+            }
+        });
+
+        // Add another vehicle button
+        addAnotherBtn.addEventListener('click', function() {
+            successCard.classList.add('d-none');
+            errorCard.classList.add('d-none');
+            addVehicleForm.reset();
+        });
+    });
+</script>
+{% endblock %}

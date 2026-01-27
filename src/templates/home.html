@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANPR System - Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .plate-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 6px 12px;
+            margin: 4px;
+            display: inline-block;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .plate-item:hover {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
+        }
+        .state-title {
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 5px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            color: #0d6efd;
+        }
+        .feature-icon {
+            font-size: 2rem;
+            color: #0d6efd;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="row">
+            <div class="col-md-12 text-center mb-4">
+                <h1 class="display-4">Automatic Number Plate Recognition</h1>
+                <p class="lead">Petrol Station Vehicle Eligibility System</p>
+            </div>
+        </div>
+        
+        <!-- Features -->
+        <div class="row mb-4">
+            <div class="col-md-3 text-center">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="feature-icon">🔍</div>
+                        <h3>Manual Check</h3>
+                        <p>Enter a vehicle registration number to check fuel eligibility</p>
+                        <a href="/check" class="btn btn-primary">Check Registration</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="feature-icon">📷</div>
+                        <h3>Camera Detection</h3>
+                        <p>Use your camera to automatically detect license plates</p>
+                        <a href="/camera" class="btn btn-primary">Camera Detection</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="feature-icon">🌐</div>
+                        <h3>Online Lookup</h3>
+                        <p>Check any vehicle registration number with online data</p>
+                        <a href="/online" class="btn btn-primary">Online Lookup</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="feature-icon">➕</div>
+                        <h3>Add Vehicle</h3>
+                        <p>Manually add a new vehicle to the database for checking</p>
+                        <a href="/add" class="btn btn-primary">Add Vehicle</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sample Plates -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4>Sample Registration Numbers</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Below are sample registration numbers you can use to test the system. Click on any plate to check its eligibility.</p>
+                        
+                        <div id="platesByState">
+                            <div class="text-center mb-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p>Loading sample plates...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button id="randomPlateBtn" class="btn btn-success">Try Random Plate</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Info -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h4>System Information</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Age Restrictions</h5>
+                                <ul>
+                                    <li><strong>Diesel Vehicles:</strong> No older than 10 years</li>
+                                    <li><strong>Petrol Vehicles:</strong> No older than 15 years</li>
+                                    <li><strong>CNG/Electric Vehicles:</strong> No age restrictions</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Features</h5>
+                                <ul>
+                                    <li>Real-time license plate detection</li>
+                                    <li>Automatic vehicle eligibility checking</li>
+                                    <li>Support for vehicles from all Indian states</li>
+                                    <li>Vehicle database with registration details</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load sample plates
+            loadSamplePlates();
+            
+            // Random plate button
+            document.getElementById('randomPlateBtn').addEventListener('click', function() {
+                fetch('/api/random-plate')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/check?plate=' + data.plate;
+                    }
+                });
+            });
+        });
+        
+        function loadSamplePlates() {
+            fetch('/api/sample-plates')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const platesContainer = document.getElementById('platesByState');
+                    platesContainer.innerHTML = '';
+                    
+                    // State code to full name mapping
+                    const stateNames = {
+                        'KA': 'Karnataka',
+                        'DL': 'Delhi',
+                        'MH': 'Maharashtra',
+                        'TN': 'Tamil Nadu',
+                        'GJ': 'Gujarat',
+                        'UP': 'Uttar Pradesh',
+                        'AP': 'Andhra Pradesh',
+                        'TS': 'Telangana',
+                        'WB': 'West Bengal',
+                        'HR': 'Haryana'
+                    };
+                    
+                    // Sort states alphabetically
+                    const states = Object.keys(data.grouped_plates).sort();
+                    
+                    // Create section for each state
+                    states.forEach(state => {
+                        const stateName = stateNames[state] || state;
+                        const plates = data.grouped_plates[state];
+                        
+                        // Create state section
+                        const stateSection = document.createElement('div');
+                        stateSection.className = 'mb-4';
+                        
+                        // Create state title
+                        const stateTitle = document.createElement('h5');
+                        stateTitle.className = 'state-title';
+                        stateTitle.textContent = stateName + ' (' + state + ')';
+                        stateSection.appendChild(stateTitle);
+                        
+                        // Create plates container
+                        const platesDiv = document.createElement('div');
+                        
+                        // Add plates
+                        plates.forEach(plate => {
+                            const plateItem = document.createElement('span');
+                            plateItem.className = 'plate-item';
+                            plateItem.textContent = plate;
+                            plateItem.addEventListener('click', function() {
+                                window.location.href = '/check?plate=' + plate;
+                            });
+                            platesDiv.appendChild(plateItem);
+                        });
+                        
+                        stateSection.appendChild(platesDiv);
+                        platesContainer.appendChild(stateSection);
+                    });
+                } else {
+                    const platesContainer = document.getElementById('platesByState');
+                    platesContainer.innerHTML = '<div class="alert alert-danger">Error loading sample plates</div>';
+                }
+            })
+            .catch(error => {
+                const platesContainer = document.getElementById('platesByState');
+                platesContainer.innerHTML = '<div class="alert alert-danger">Error loading sample plates</div>';
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html> 

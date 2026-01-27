@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+
+{% block title %}About - ANPR System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <h2>About the ANPR System</h2>
+        <p class="lead">
+            The Automatic Number Plate Recognition (ANPR) system is designed to enforce fuel restrictions 
+            based on vehicle age at petrol stations.
+        </p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4>System Overview</h4>
+            </div>
+            <div class="card-body">
+                <p>
+                    The ANPR system installed at petrol stations is designed to enforce fuel restrictions 
+                    based on the vehicle's age. The system uses advanced image processing and database 
+                    management to ensure compliance with government regulations for pollution control.
+                </p>
+                
+                <h5 class="mt-4">Process Overview</h5>
+                <p>
+                    The ANPR system determines a vehicle's age through a four-step process:
+                </p>
+                
+                <ol>
+                    <li>
+                        <strong>License Plate Capture</strong>
+                        <ul>
+                            <li>ANPR cameras are installed at the entrance of petrol stations.</li>
+                            <li>As a vehicle approaches, the camera captures a clear image of its license plate.</li>
+                            <li>High-resolution cameras ensure accurate image capture under various lighting and weather conditions.</li>
+                        </ul>
+                    </li>
+                    
+                    <li>
+                        <strong>Data Extraction</strong>
+                        <ul>
+                            <li>The captured license plate image is processed using Optical Character Recognition (OCR).</li>
+                            <li>The OCR software converts the image into text, extracting the registration number.</li>
+                            <li>This step ensures that even slightly damaged or dirty plates are recognized accurately.</li>
+                        </ul>
+                    </li>
+                    
+                    <li>
+                        <strong>Database Cross-Referencing</strong>
+                        <ul>
+                            <li>The extracted registration number is matched against the government's Vahan Portal or any other authorized vehicle database.</li>
+                            <li>The database contains essential details, including the vehicle's registration date, owner information, and compliance status.</li>
+                            <li>This cross-referencing is performed in real time to minimize delays.</li>
+                        </ul>
+                    </li>
+                    
+                    <li>
+                        <strong>Age Calculation</strong>
+                        <ul>
+                            <li>The system compares the vehicle's registration date with the current date.</li>
+                            <li>If the vehicle exceeds the permissible age limit for fuel refueling (e.g., 10 years for diesel and 15 years for petrol), it triggers a Fuel Denial Alert.</li>
+                            <li>The fuel station attendant is notified through an alert on their monitor, preventing the vehicle from refueling.</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h4>Technical Specifications</h4>
+            </div>
+            <div class="card-body">
+                <h5>Camera System</h5>
+                <ul>
+                    <li>High-resolution IP cameras</li>
+                    <li>Day/night operation capability</li>
+                    <li>Weather-resistant housing</li>
+                </ul>
+                
+                <h5>OCR Engine</h5>
+                <ul>
+                    <li>Tesseract-based OCR</li>
+                    <li>Optimized for license plate formats</li>
+                    <li>95%+ recognition accuracy</li>
+                </ul>
+                
+                <h5>Age Limits</h5>
+                <ul>
+                    <li>Diesel vehicles: 10 years</li>
+                    <li>Petrol vehicles: 15 years</li>
+                </ul>
+                
+                <h5>Software Stack</h5>
+                <ul>
+                    <li>Python for backend processing</li>
+                    <li>OpenCV for image processing</li>
+                    <li>MongoDB for data storage</li>
+                    <li>Flask for web interface</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4>Contact Information</h4>
+            </div>
+            <div class="card-body">
+                <p>For more information or technical support:</p>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-envelope me-2"></i> support@anpr-system.com</li>
+                    <li><i class="fas fa-phone me-2"></i> +91 1234567890</li>
+                    <li><i class="fas fa-map-marker-alt me-2"></i> 123 Tech Park, Bangalore, India</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %} 
